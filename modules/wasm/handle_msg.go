@@ -28,9 +28,20 @@ func (m *Module) HandleMsg(index int, msg sdk.Msg, tx *juno.Tx) error {
 		return m.handleMsgClearAdmin(tx, index, cosmosMsg)
 	case *wasmtypes.MsgUpdateAdmin:
 		return m.handleMsgUpdateAdmin(tx, index, cosmosMsg)
+	case *wasmtypes.MsgExecuteContract:
+		return m.handleMsgExecuteContract(tx, index, cosmosMsg)
 	}
 
 	return nil
+}
+
+func (m *Module) handleMsgExecuteContract(tx *juno.Tx, index int, msg *wasmtypes.MsgExecuteContract) error {
+	json := string(msg.Msg)
+	address := msg.Contract
+	sender := msg.Sender
+	funds := msg.Funds
+	execMsg := types.ExecutedMessage(sender, address, funds, json)
+	return m.db.SaveExec(execMsg)
 }
 
 func (m *Module) handleMsgStoreCode(tx *juno.Tx, index int, msg *wasmtypes.MsgStoreCode) error {
