@@ -67,7 +67,7 @@ func (m *Module) handleMsgInstantiateContract(tx *juno.Tx, index int, msg *wasmt
 	}
 
 	if len(contracts) == 0 {
-		return fmt.Errorf("No contract address found")
+		return fmt.Errorf("no contract address found")
 	}
 
 	createdAt := &wasmtypes.AbsoluteTxPosition{
@@ -89,8 +89,10 @@ func (m *Module) handleMsgInstantiateContract(tx *juno.Tx, index int, msg *wasmt
 			admin, _ = sdk.AccAddressFromBech32(response.Admin)
 		}
 
+		json := string(msg.Msg)
+
 		contractInfo := wasmtypes.NewContractInfo(response.CodeID, creator, admin, response.Label, createdAt)
-		contract := types.NewContract(&contractInfo, contractAddress, tx.Timestamp)
+		contract := types.NewContract(&contractInfo, contractAddress, tx.Timestamp, json)
 
 		if err = m.db.SaveContract(contract); err != nil {
 			return err
