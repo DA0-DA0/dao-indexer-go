@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/disperze/wasmx/types"
+	"encoding/json"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/disperze/wasmx/types"
 	juno "github.com/forbole/juno/v2/types"
 )
 
@@ -89,10 +90,70 @@ func (m *Module) handleMsgInstantiateContract(tx *juno.Tx, index int, msg *wasmt
 			admin, _ = sdk.AccAddressFromBech32(response.Admin)
 		}
 
-		json := string(msg.Msg)
+		json_string := string(msg.Msg)
+
+		type Duration struct {
+			Time int
+		}
+
+		type Balance struct {
+			Address             string
+			Amount              int64
+			StakeContractCodeId int
+			InitialDaoBalance   int64
+			UnstakingDuration   Duration
+		}
+
+		type Cw20Msg struct {
+			Name     string
+			Symbol   string
+			Decimals int
+			Balances []Balance
+		}
+		type InstantiateCw20 struct {
+			Cw20CodeId          int32 `json:"cw20_code_id"`
+			Label               string
+			Msg                 Cw20Msg `json:"msg"`
+			StakeContractCodeId string
+		}
+
+		type GovToken struct {
+			InstantiateCw20 InstantiateCw20 `json:"instantiate_new_cw20"`
+		}
+
+		type DaoInstantiateContractMessage struct {
+			Name        string
+			Description string
+			GovToken    GovToken `json:"gov_token"`
+		}
+		/*
+			"{\"name\":\"d2\",\"description\":\"d2d\",
+			\"gov_token\":{\"instantiate_new_cw20\":
+			{\"cw20_code_id\":1,\"label\":\"db_t\",\"msg\":
+			{\"name\":\"db_t\",\"symbol\":\"dbt\",\"decimals\":6,\"
+			initial_balances\":[{
+				\"address\":\"juno1mudcxmlg5gxqkwuywuedql79wgy3m02rtqac8a\",
+				\"amount\":\"1000000\"}]},
+				\"stake_contract_code_id\":5,
+				\"initial_dao_balance\":\"5000000\",\
+				"unstaking_duration\":{
+					\"time\":0
+					}
+					}},
+				\"threshold\":{
+					\"absolute_percentage\":{
+						\"percentage\":\"0.75\"}},
+						\"max_voting_period\":{\"time\":604800},
+						\"proposal_deposit_amount\":\"0\",\"refund_failed_proposals\":true}"
+		*/
+		var contractMessage DaoInstantiateContractMessage
+		unmarshallErr := json.Unmarshal(msg.Msg, &contractMessage)
+		fmt.Println(unmarshallErr)
+		govToken := contractMessage.GovToken
+		fmt.Println(govToken)
 
 		contractInfo := wasmtypes.NewContractInfo(response.CodeID, creator, admin, response.Label, createdAt)
-		contract := types.NewContract(&contractInfo, contractAddress, tx.Timestamp, json)
+		contract := types.NewContract(&contractInfo, contractAddress, tx.Timestamp, json_string)
 
 		if err = m.db.SaveContract(contract); err != nil {
 			return err
