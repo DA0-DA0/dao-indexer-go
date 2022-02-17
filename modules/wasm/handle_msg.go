@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/disperze/wasmx/types"
-
+	encoding_json "encoding/json"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/disperze/wasmx/types"
 	juno "github.com/forbole/juno/v2/types"
 )
 
@@ -49,6 +49,13 @@ func (m *Module) handleMsgStoreCode(tx *juno.Tx, index int, msg *wasmtypes.MsgSt
 	return m.db.SaveCode(code)
 }
 
+type QuerySmartContractState struct {
+	Data GetConfig `json:"get_config,omitempty"`
+}
+
+type GetConfig struct {
+}
+
 func (m *Module) handleMsgInstantiateContract(tx *juno.Tx, index int, msg *wasmtypes.MsgInstantiateContract) error {
 	contracts, err := GetAllContracts(tx, index, wasmtypes.EventTypeInstantiate)
 	if err != nil {
@@ -85,6 +92,17 @@ func (m *Module) handleMsgInstantiateContract(tx *juno.Tx, index int, msg *wasmt
 			return err
 		}
 	}
+
+	encodedVals, err := encoding_json.Marshal(QuerySmartContractState{})
+
+	x := &wasmtypes.QuerySmartContractStateRequest{
+		Address:   "x",
+		QueryData: encodedVals,
+	}
+
+	res, err := m.client.SmartContractState(ctx, x)
+
+	fmt.Println(res)
 
 	return nil
 }
