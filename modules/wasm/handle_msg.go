@@ -2,11 +2,11 @@ package wasm
 
 import (
 	"context"
-	"fmt"
-
 	encoding_json "encoding/json"
+	"fmt"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/disperze/wasmx/types"
 	juno "github.com/forbole/juno/v2/types"
 )
@@ -85,26 +85,44 @@ func (m *Module) handleMsgInstantiateContract(tx *juno.Tx, index int, msg *wasmt
 			admin, _ = sdk.AccAddressFromBech32(response.Admin)
 		}
 
+		m.GrabDataFromContract(&contractAddress)
+
 		contractInfo := wasmtypes.NewContractInfo(response.CodeID, creator, admin, response.Label, createdAt)
 		contract := types.NewContract(&contractInfo, contractAddress, tx.Timestamp)
 
 		if err = m.db.SaveContract(contract); err != nil {
 			return err
 		}
+
 	}
+
+	return nil
+}
+
+func (m *Module) GrabDataFromContract(contractAddress *string) {
+	ctx := context.Background()
 
 	encodedVals, err := encoding_json.Marshal(QuerySmartContractState{})
 
+	fmt.Println(encodedVals)
+
+	if err != nil {
+		return
+	}
+
 	x := &wasmtypes.QuerySmartContractStateRequest{
-		Address:   "x",
+		Address:   *contractAddress,
 		QueryData: encodedVals,
 	}
 
+	spew.Dump(x)
 	res, err := m.client.SmartContractState(ctx, x)
 
-	fmt.Println(res)
+	if err != nil {
+		return
+	}
 
-	return nil
+	spew.Dump(res)
 }
 
 func (m *Module) handleMsgMigrateContract(tx *juno.Tx, index int, msg *wasmtypes.MsgMigrateContract) error {
