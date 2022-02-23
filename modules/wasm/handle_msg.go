@@ -49,13 +49,6 @@ func (m *Module) handleMsgStoreCode(tx *juno.Tx, index int, msg *wasmtypes.MsgSt
 	return m.db.SaveCode(code)
 }
 
-type QuerySmartContractState struct {
-	Data GetConfig `json:"get_config,omitempty"`
-}
-
-type GetConfig struct {
-}
-
 func (m *Module) handleMsgInstantiateContract(tx *juno.Tx, index int, msg *wasmtypes.MsgInstantiateContract) error {
 	contracts, err := GetAllContracts(tx, index, wasmtypes.EventTypeInstantiate)
 	if err != nil {
@@ -102,7 +95,7 @@ func (m *Module) handleMsgInstantiateContract(tx *juno.Tx, index int, msg *wasmt
 func (m *Module) GrabDataFromContract(contractAddress *string) {
 	ctx := context.Background()
 
-	encodedVals, err := encoding_json.Marshal(QuerySmartContractState{})
+	encodedVals, err := encoding_json.Marshal(types.CW3DAOGetConfigQuery{})
 
 	fmt.Println(encodedVals)
 
@@ -110,13 +103,13 @@ func (m *Module) GrabDataFromContract(contractAddress *string) {
 		return
 	}
 
-	x := &wasmtypes.QuerySmartContractStateRequest{
+	contractRequest := &wasmtypes.QuerySmartContractStateRequest{
 		Address:   *contractAddress,
 		QueryData: encodedVals,
 	}
 
-	spew.Dump(x)
-	res, err := m.client.SmartContractState(ctx, x)
+	spew.Dump(contractRequest)
+	res, err := m.client.SmartContractState(ctx, contractRequest)
 
 	if err != nil {
 		return
